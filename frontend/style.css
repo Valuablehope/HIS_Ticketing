@@ -12,6 +12,11 @@ header {
   text-align: center;
 }
 
+#tickets h2 {
+  margin: 0 0 0.25rem;
+  font-size: 1.25rem;
+}
+
 #tickets {
   max-width: 800px;
   margin: 2rem auto;
@@ -24,6 +29,12 @@ header {
 .ticket {
   border-bottom: 1px solid #ddd;
   padding: 0.5rem 0;
+}
+
+.ticket img {
+  margin-top: 0.5rem;
+  max-width: 100%;
+  border-radius: 4px;
 }
 
 .ticket:last-child {

@@ -5,7 +5,7 @@ A simple ticket management tool backed by Supabase.
 ## Setup
 
 1. Create a Supabase project and run `supabase/schema.sql` to set up the database.
-2. Update `frontend/app.js` with your Supabase URL and anon key.
+2. Update `frontend/app.js` with your Supabase URL and anon key or use the included credentials.
 
 ## Usage
 
