@@ -24,6 +24,10 @@ alter role authenticated set my.telegram_bot_token = '<TELEGRAM_BOT_TOKEN>';
 
 Tickets include an optional `screenshot_url` column. Files can be uploaded to Supabase Storage and the public URL saved in this column. When closing a ticket, support agents can insert feedback into `ticket_closure_feedback` to store their resolution notes.
 
+The `tickets.updated_at` field is automatically updated by a trigger whenever a ticket record changes.
+
+The front‑end can be implemented in React and hosted as static files (e.g., on GitHub Pages) while interacting with Supabase for authentication, data storage, and these server-side notifications.
+=======
 The front‑end can be implemented in React and hosted as static files (e.g., on GitHub Pages) while interacting with Supabase for authentication, data storage, and these server-side notifications.
 =======
 A simple ticket management tool backed by Supabase.
