@@ -27,3 +27,16 @@ Tickets include an optional `screenshot_url` column. Files can be uploaded to Su
 The `tickets.updated_at` field is automatically updated by a trigger whenever a ticket record changes.
 
 The front‑end can be implemented in React and hosted as static files (e.g., on GitHub Pages) while interacting with Supabase for authentication, data storage, and these server-side notifications.
+=======
+The front‑end can be implemented in React and hosted as static files (e.g., on GitHub Pages) while interacting with Supabase for authentication, data storage, and these server-side notifications.
+=======
+A simple ticket management tool backed by Supabase.
+
+## Setup
+
+1. Create a Supabase project and run `supabase/schema.sql` to set up the database.
+2. Update `frontend/app.js` with your Supabase URL and anon key or use the included credentials.
+
+## Usage
+
+Open `frontend/index.html` in your browser. Tickets will load from your Supabase backend.
