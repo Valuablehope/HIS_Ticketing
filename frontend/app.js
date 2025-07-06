@@ -1,35 +1,60 @@
-const SUPABASE_URL = 'https://dblxeucudkgmwmvqlyep.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRibHhldWN1ZGtnbXdtdnFseWVwIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE3NDI4NzEsImV4cCI6MjA2NzMxODg3MX0.hKQ4GhGNG8BhSUBBqXQU80CaWtjociPpsevF_kSfdgA';
+// app.js
 
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// ── Replace these with your real values ───────────────────────────────────────
+const SUPABASE_URL      = 'https://zwiceccrwxwksiultqbf.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inp3aWNlY2Nyd3h3a3NpdWx0cWJmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTE3NDYyMDksImV4cCI6MjA2NzMyMjIwOX0.hnjHEV8vUePzzOWJnkWzBfHJn5ItcItJqNmiLgKpKoQ';
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Instantiate the client
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 async function loadTickets() {
-  const { data: tickets, error } = await supabase
+  const container = document.getElementById('tickets');
+  container.innerHTML = '';  // clear out old content
+
+  // Order by the actual timestamp column (inserted_at), not `created_at`
+  const { data: tickets, error } = await supabaseClient
     .from('tickets')
     .select('*')
-    .order('created_at', { ascending: false });
-
-  const container = document.getElementById('tickets');
-  container.innerHTML = '';
+    .order('inserted_at', { ascending: false });
 
   if (error) {
-    container.textContent = 'Error loading tickets';
+    console.error('Error loading tickets:', error);
+    container.textContent = `Error loading tickets: ${error.message}`;
     return;
   }
 
-  tickets.forEach(t => {
-    const div = document.createElement('div');
-    div.className = 'ticket';
-    div.innerHTML = `<h2>${t.title}</h2><p>${t.description}</p>`;
+  if (!tickets || tickets.length === 0) {
+    container.textContent = 'No tickets found.';
+    return;
+  }
 
-    if (t.screenshot_url) {
+  tickets.forEach(ticket => {
+    const card = document.createElement('div');
+    card.className = 'ticket';
+
+    const title = document.createElement('h2');
+    title.textContent = ticket.title;
+    card.appendChild(title);
+
+    const desc = document.createElement('p');
+    desc.textContent = ticket.description || '(no description)';
+    card.appendChild(desc);
+
+    if (ticket.screenshot_url) {
       const img = document.createElement('img');
-      img.src = t.screenshot_url;
-      img.alt = `${t.title} screenshot`;
-      div.appendChild(img);
+      img.src = ticket.screenshot_url;
+      img.alt = 'Ticket screenshot';
+      img.className = 'screenshot';
+      card.appendChild(img);
     }
 
-    container.appendChild(div);
+    // Show when it was created
+    const ts = document.createElement('small');
+    ts.textContent = new Date(ticket.inserted_at).toLocaleString();
+    card.appendChild(ts);
+
+    container.appendChild(card);
   });
 }
 
