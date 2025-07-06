@@ -91,10 +91,9 @@ end;
 $$;
 
 -- Trigger function after ticket insert
-create or replace function trg_ticket_after_insert()
 
 -- Trigger function after ticket insert
-create or replace function ticket_after_insert()
+create or replace function trg_ticket_after_insert()
 returns trigger language plpgsql as $$
 declare
     admin_rec record;
@@ -115,12 +114,10 @@ after insert on tickets
 for each row execute procedure trg_ticket_after_insert();
 
 -- 5.2 AFTER UPDATE OF status: log history + notify submitter
-create or replace function trg_ticket_status_change()
 
-for each row execute procedure ticket_after_insert();
 
 -- Trigger for status change
-create or replace function ticket_status_change()
+create or replace function trg_ticket_status_change()
 returns trigger language plpgsql as $$
 declare
     submit_chat text;
@@ -145,13 +142,8 @@ after update of status on tickets
 for each row execute procedure trg_ticket_status_change();
 
 -- 5.3 AFTER UPDATE OF assignee_id: log assignment + notify new assignee
-create or replace function trg_ticket_assigned()
-
-after update on tickets
-for each row execute procedure ticket_status_change();
-
 -- Trigger for assignment change
-create or replace function ticket_assigned()
+create or replace function trg_ticket_assigned()
 returns trigger language plpgsql as $$
 declare
     assignee_chat text;
@@ -159,9 +151,6 @@ begin
     if new.assignee_id is distinct from old.assignee_id then
         insert into ticket_assignments(ticket_id, assignee_id, assigned_by)
         values (new.id, new.assignee_id, auth.uid()::uuid);
-
-        values (new.id, new.assignee_id, current_setting('jwt.claims.user_id')::uuid);
-
         select telegram_chat_id into assignee_chat from profiles where id = new.assignee_id;
         perform notify_telegram(assignee_chat, 'You have been assigned ticket: ' || new.title);
     end if;
@@ -223,101 +212,3 @@ create policy policy_assignments_access
 create index if not exists idx_status_history_ticket on ticket_status_history(ticket_id);
 create index if not exists idx_assignments_ticket on ticket_assignments(ticket_id);
 
-create trigger trg_ticket_assigned
-after update on tickets
-for each row execute procedure ticket_assigned();
-
--- Enable RLS and basic policies
-alter table profiles enable row level security;
-create policy "Self access" on profiles
-    for select using (auth.uid() = id);
-
-alter table tickets enable row level security;
-create policy "Submitter or Assignee" on tickets
-    for select using (auth.uid() = submitter_id or auth.uid() = assignee_id);
-
-alter table ticket_status_history enable row level security;
-create policy "Owner access" on ticket_status_history
-    for select using (auth.uid() = (select submitter_id from tickets where id = ticket_id) or auth.uid() = (select assignee_id from tickets where id = ticket_id));
-
-alter table ticket_assignments enable row level security;
-create policy "Owner access" on ticket_assignments
-    for select using (auth.uid() = (select submitter_id from tickets where id = ticket_id) or auth.uid() = assignee_id);
-
--- Index history tables
-create index if not exists status_history_ticket_idx on ticket_status_history(ticket_id);
-create index if not exists assignments_ticket_idx on ticket_assignments(ticket_id);
-
--- Table for support feedback when tickets are closed
-create table if not exists ticket_closure_feedback (
-    id bigserial primary key,
-    ticket_id uuid references tickets(id) on delete cascade,
-    feedback text,
-    created_by uuid references profiles(id),
-    created_at timestamp with time zone default now()
-);
-
-alter table ticket_closure_feedback enable row level security;
-create policy policy_closure_feedback_access
-  on ticket_closure_feedback for select
-  using (
-    auth.uid() = (select submitter_id from tickets where id = ticket_closure_feedback.ticket_id)
-    or
-    auth.uid() = (select assignee_id  from tickets where id = ticket_closure_feedback.ticket_id)
-  );
-
-
-create policy "Owner access" on ticket_closure_feedback
-    for select using (
-        auth.uid() = (select submitter_id from tickets where id = ticket_id) or
-        auth.uid() = (select assignee_id from tickets where id = ticket_id)
-    );
-
--- Database schema for HIS Ticketing
-
--- Table: tickets
-create table if not exists tickets (
-    id serial primary key,
-    title text not null,
-    description text,
-    status text default 'open',
-    assigned_to text,
-    created_at timestamp with time zone default now(),
-    updated_at timestamp with time zone default now()
-);
-
--- Ensure screenshot_url column exists
-alter table tickets add column if not exists screenshot_url text;
-
--- Function to update updated_at timestamp
-create or replace function update_timestamp()
-returns trigger as $$
-begin
-    new.updated_at = now();
-    return new;
-end;
-$$ language plpgsql;
-
--- Trigger: trg_ticket_after_insert
-
--- Drop existing trigger if present
- drop trigger if exists trg_ticket_after_insert on tickets;
-create trigger trg_ticket_after_insert
-before insert on tickets
-for each row execute procedure update_timestamp();
-
--- Trigger: trg_ticket_status_change
-
--- Drop existing trigger if present
- drop trigger if exists trg_ticket_status_change on tickets;
-create trigger trg_ticket_status_change
-before update of status on tickets
-for each row execute procedure update_timestamp();
-
--- Trigger: trg_ticket_assigned
-
--- Drop existing trigger if present
- drop trigger if exists trg_ticket_assigned on tickets;
-create trigger trg_ticket_assigned
-before update of assigned_to on tickets
-for each row execute procedure update_timestamp();
